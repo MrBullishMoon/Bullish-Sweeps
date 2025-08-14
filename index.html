@@ -112,9 +112,9 @@
     <h1>Bullish Sweeps — Entry Portal</h1>
     <p class="sub">Backfill allowed from <strong>Aug 1, 2025</strong>. Use the same wallet/email every time.</p>
 
-    <form id="entryForm" method="POST">
+    <form id="entryForm" method="POST" novalidate>
       <label>Entry Type</label>
-      <select name="entry_type" required>
+      <select name="entry_type" id="entry_type" required>
         <option value="daily_submission">Daily submission</option>
         <option value="unlock_18_docks">Unlocked to 18 docks</option>
         <option value="referral">Referral</option>
@@ -133,9 +133,9 @@
             type="text"
             name="wallet_address"
             id="wallet_address"
-            placeholder="0x..."
+            placeholder="0x... (42 chars)"
             required
-            pattern="(0x|0X)[0-9a-fA-F]{40}"
+            maxlength="60"
             inputmode="text"
             autocapitalize="none"
             autocomplete="off"
@@ -164,8 +164,8 @@
         type="text"
         name="referred_wallet"
         id="referred_wallet"
-        placeholder="0x..."
-        pattern="(0x|0X)[0-9a-fA-F]{40}"
+        placeholder="0x... (42 chars)"
+        maxlength="60"
         inputmode="text"
         autocapitalize="none"
         autocomplete="off"
@@ -188,7 +188,7 @@
         <div class="row">
           <div>
             <label>Wallet (0x…)</label>
-            <input type="text" id="totalsWallet" placeholder="0x...">
+            <input type="text" id="totalsWallet" placeholder="0x..." >
           </div>
           <div>
             <label>Email</label>
@@ -238,18 +238,55 @@
     updateCountdown();
     setInterval(updateCountdown, 1000);
 
-    // --- Wallet input hardening (trim/normalize) ---
-    function cleanAddr(s) { return (s || '').replace(/\s+/g,'').trim(); }
+    // --- Input helpers ---
+    function stripZeroWidth(s) { return (s||'').replace(/[\u200B-\u200D\uFEFF]/g, ''); }
+    function cleanAddr(s) { return stripZeroWidth((s || '').replace(/\s+/g,'').trim()); }
     function validAddr(s) { return /^(0x|0X)[0-9a-fA-F]{40}$/.test(s || ''); }
-    ['wallet_address','referred_wallet'].forEach(id => {
-      const el = document.getElementById(id);
+
+    const entryTypeEl = document.getElementById('entry_type');
+    const walletEl = document.getElementById('wallet_address');
+    const refEl = document.getElementById('referred_wallet');
+
+    function syncReferralRequirement() {
+      const isReferral = entryTypeEl.value === 'referral';
+      refEl.required = isReferral;
+    }
+    entryTypeEl.addEventListener('change', syncReferralRequirement);
+    syncReferralRequirement();
+
+    [walletEl, refEl].forEach(el => {
       if (!el) return;
       el.addEventListener('input', () => {
         el.value = cleanAddr(el.value);
-        el.setCustomValidity(validAddr(el.value) || el.value === '' ? '' : 'Enter a 42-character 0x… address');
+        el.setCustomValidity('');
       });
-      el.addEventListener('blur', () => { el.value = cleanAddr(el.value).toLowerCase(); });
+      el.addEventListener('blur', () => {
+        el.value = cleanAddr(el.value).toLowerCase();
+      });
     });
+
+    function validateForm() {
+      const wVal = cleanAddr(walletEl.value).toLowerCase();
+      const isReferral = entryTypeEl.value === 'referral';
+      const rVal = cleanAddr(refEl.value).toLowerCase();
+
+      if (!validAddr(wVal)) {
+        walletEl.focus();
+        walletEl.setCustomValidity('Enter a 42-character 0x… wallet address');
+        walletEl.reportValidity();
+        return false;
+      }
+      if (isReferral && !validAddr(rVal)) {
+        refEl.focus();
+        refEl.setCustomValidity('Enter a 42-character 0x… referred wallet address');
+        refEl.reportValidity();
+        return false;
+      }
+      // write back normalized values
+      walletEl.value = wVal;
+      if (rVal) refEl.value = rVal;
+      return true;
+    }
 
     // Set date min/max
     const min = '2025-08-01';
@@ -266,6 +303,9 @@
       e.preventDefault();
       msg.textContent = 'Submitting...';
       msg.className = 'msg';
+
+      if (!validateForm()) { return; }
+
       if (f.website && f.website.value) { msg.textContent = 'Bot detected.'; msg.classList.add('err'); return; }
 
       const fd = new FormData(f);
@@ -276,7 +316,7 @@
           msg.textContent = 'Success! Your entry was recorded.';
           msg.classList.add('ok');
           // auto-show totals for the submitted wallet/email
-          const submittedWallet = document.getElementById('wallet_address').value.trim().toLowerCase();
+          const submittedWallet = walletEl.value;
           const submittedEmail  = f.querySelector('input[name="email"]').value.trim();
           document.getElementById('totalsWallet').value = submittedWallet;
           document.getElementById('totalsEmail').value  = submittedEmail;
@@ -285,6 +325,7 @@
 
           f.reset();
           dateInput.value = max;
+          syncReferralRequirement();
         } else {
           msg.textContent = 'Error: ' + (j.error || 'Unknown');
           msg.classList.add('err');
