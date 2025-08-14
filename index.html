@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -72,11 +73,7 @@
       color: white;
       background: linear-gradient(90deg, var(--accent), var(--accent2));
     }
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .msg { margin-top: 12px; font-weight: 600; }
     .ok { color: var(--ok); }
     .err { color: var(--err); }
@@ -135,6 +132,23 @@
 
       <button type="submit">Submit Entry</button>
       <p id="msg" class="msg"></p>
+
+      <!-- Totals panel -->
+      <div id="totalsPanel" class="totals" style="margin-top:18px; padding:14px; border:1px solid rgba(255,255,255,.12); border-radius:12px;">
+        <div style="font-weight:700; margin-bottom:8px;">Check My Totals</div>
+        <div class="row">
+          <div>
+            <label>Wallet (0x…)</label>
+            <input type="text" id="totalsWallet" placeholder="0x...">
+          </div>
+          <div>
+            <label>Email</label>
+            <input type="email" id="totalsEmail" placeholder="you@example.com">
+          </div>
+        </div>
+        <button type="button" id="checkTotalsBtn" style="margin-top:12px;">Check Totals</button>
+        <div id="totalsBox" style="margin-top:12px; line-height:1.35;"></div>
+      </div>
     </form>
 
     <footer>© <span id="year"></span> Bullish Moon</footer>
@@ -148,7 +162,6 @@
     const yearSpan = document.getElementById('year');
     yearSpan.textContent = new Date().getFullYear();
 
-    // Set date min/max
     const min = '2025-08-01';
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -163,13 +176,7 @@
       e.preventDefault();
       msg.textContent = 'Submitting...';
       msg.className = 'msg';
-
-      // Simple honeypot check
-      if (f.website && f.website.value) {
-        msg.textContent = 'Bot detected.';
-        msg.classList.add('err');
-        return;
-      }
+      if (f.website && f.website.value) { msg.textContent = 'Bot detected.'; msg.classList.add('err'); return; }
 
       const fd = new FormData(f);
       try {
@@ -178,6 +185,14 @@
         if (j.ok) {
           msg.textContent = 'Success! Your entry was recorded.';
           msg.classList.add('ok');
+          // auto-show totals for the submitted wallet/email
+          const submittedWallet = f.querySelector('input[name="wallet_address"]').value.trim().toLowerCase();
+          const submittedEmail  = f.querySelector('input[name="email"]').value.trim();
+          document.getElementById('totalsWallet').value = submittedWallet;
+          document.getElementById('totalsEmail').value  = submittedEmail;
+          const res = await fetchTotals(submittedWallet, submittedEmail);
+          renderTotals(res);
+
           f.reset();
           dateInput.value = max;
         } else {
@@ -187,6 +202,53 @@
       } catch (err) {
         msg.textContent = 'Network error. Please try again.';
         msg.classList.add('err');
+      }
+    });
+
+    // ---- Totals helpers ----
+    async function fetchTotals(wallet, email) {
+      const url = new URL(SCRIPT_URL);
+      url.searchParams.set('action', 'totals');
+      if (wallet) url.searchParams.set('wallet', wallet);
+      if (email)  url.searchParams.set('email', email);
+      const r = await fetch(url.toString());
+      const j = await r.json();
+      return j;
+    }
+
+    function renderTotals(payload) {
+      const box = document.getElementById('totalsBox');
+      if (!payload || !payload.ok) {
+        box.innerHTML = '<span class="err">Could not fetch totals.</span>';
+        return;
+      }
+      const t = payload.totals || { entries:{all:0,verified:0,pending:0}, tokens:{all:0,verified:0,pending:0} };
+      const fmt = (n) => (typeof n === 'number' ? n.toLocaleString() : n);
+      let html = `
+        <div><strong>Entries:</strong> ${fmt(t.entries.all)} <small>(Verified: ${fmt(t.entries.verified)}, Pending: ${fmt(t.entries.pending)})</small></div>
+        <div><strong>Tokens:</strong> ${fmt(t.tokens.all)} <small>(Verified: ${fmt(t.tokens.verified)}, Pending: ${fmt(t.tokens.pending)})</small></div>
+      `;
+      if (payload.breakdown) {
+        html += '<div style="margin-top:8px"><strong>By Type</strong></div>';
+        for (const [type, b] of Object.entries(payload.breakdown)) {
+          html += `
+            <div style="margin-left:8px">
+              <div><em>${type}</em> — Entries: ${fmt(b.entries.all)} (V:${fmt(b.entries.verified)}/P:${fmt(b.entries.pending)}), Tokens: ${fmt(b.tokens.all)} (V:${fmt(b.tokens.verified)}/P:${fmt(b.tokens.pending)})</div>
+            </div>`;
+        }
+      }
+      html += `<div style="margin-top:6px; color:#9aa0b6;"><small>Note: Only <strong>Verified</strong> entries/tokens count for drawings. Pending items are approved after review.</small></div>`;
+      box.innerHTML = html;
+    }
+
+    document.getElementById('checkTotalsBtn').addEventListener('click', async () => {
+      const wallet = document.getElementById('totalsWallet').value.trim().toLowerCase();
+      const email  = document.getElementById('totalsEmail').value.trim();
+      try {
+        const res = await fetchTotals(wallet, email);
+        renderTotals(res);
+      } catch (err) {
+        document.getElementById('totalsBox').innerHTML = '<span class="err">Network error fetching totals.</span>';
       }
     });
   </script>
