@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bullish Sweeps Entry</title>
+  <meta name="description" content="Submit your Bullish Sweeps entries" />
+  <style>
+    :root {
+      --bg: #0b0b14;
+      --card: #171728;
+      --text: #e8e8ff;
+      --muted: #9aa0b6;
+      --accent: #a64dff;
+      --accent2: #ff4dc4;
+      --ok: #36c275;
+      --err: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(60rem 60rem at 20% 10%, rgba(166,77,255,.12), transparent 60%),
+        radial-gradient(50rem 50rem at 80% 0%, rgba(255,77,196,.08), transparent 60%),
+        var(--bg);
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 720px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)), var(--card);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 3vw, 32px);
+      letter-spacing: 0.3px;
+    }
+    p.sub {
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+    label { font-weight: 600; display:block; margin: 14px 0 6px; }
+    input, select {
+      width: 100%;
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding: 12px 14px;
+      outline: none;
+      font-size: 16px;
+    }
+    input::placeholder { color: #98a0b8; }
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .msg { margin-top: 12px; font-weight: 600; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    small { color: var(--muted); }
+    footer { margin-top: 16px; color: var(--muted); font-size: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Bullish Sweeps — Entry Portal</h1>
+    <p class="sub">Backfill allowed from <strong>Aug 1, 2025</strong>. Use the same wallet/email every time.</p>
+
+    <form id="entryForm" method="POST">
+      <label>Entry Type</label>
+      <select name="entry_type" required>
+        <option value="daily_submission">Daily submission</option>
+        <option value="unlock_18_docks">Unlocked to 18 docks</option>
+        <option value="referral">Referral</option>
+        <option value="60_day_streak">60-day streak</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label>Entry Date</label>
+          <input type="date" name="entry_date" required>
+          <small>Pick any date since Aug 1, 2025</small>
+        </div>
+        <div>
+          <label>Wallet Address</label>
+          <input type="text" name="wallet_address" placeholder="0x..." required pattern="0x[a-fA-F0-9]{40}">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Email</label>
+          <input type="email" name="email" required>
+        </div>
+        <div>
+          <label>Full Name</label>
+          <input type="text" name="full_name" required>
+        </div>
+      </div>
+
+      <label>Tx Hash <small>(optional for daily/streak)</small></label>
+      <input type="text" name="tx_hash" placeholder="0x...">
+
+      <label>Referred Wallet <small>(for referral claims)</small></label>
+      <input type="text" name="referred_wallet" placeholder="0x...">
+
+      <label>Evidence Link <small>(optional)</small></label>
+      <input type="url" name="evidence" placeholder="https://...">
+
+      <!-- Honeypot anti-bot -->
+      <input type="text" name="website" style="position:absolute;left:-9999px;opacity:0" tabindex="-1" autocomplete="off">
+
+      <button type="submit">Submit Entry</button>
+      <p id="msg" class="msg"></p>
+    </form>
+
+    <footer>© <span id="year"></span> Bullish Moon</footer>
+  </main>
+
+  <script>
+    const SCRIPT_URL = 'REPLACE_WITH_YOUR_WEB_APP_URL';
+    const f = document.getElementById('entryForm');
+    const msg = document.getElementById('msg');
+    const dateInput = f.querySelector('input[name="entry_date"]');
+    const yearSpan = document.getElementById('year');
+    yearSpan.textContent = new Date().getFullYear();
+
+    // Set date min/max
+    const min = '2025-08-01';
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth()+1).padStart(2,'0');
+    const dd = String(today.getDate()).padStart(2,'0');
+    const max = `${yyyy}-${mm}-${dd}`;
+    dateInput.min = min;
+    dateInput.max = max;
+    dateInput.value = max;
+
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = 'Submitting...';
+      msg.className = 'msg';
+
+      // Simple honeypot check
+      if (f.website && f.website.value) {
+        msg.textContent = 'Bot detected.';
+        msg.classList.add('err');
+        return;
+      }
+
+      const fd = new FormData(f);
+      try {
+        const r = await fetch(SCRIPT_URL, { method:'POST', body: fd });
+        const j = await r.json();
+        if (j.ok) {
+          msg.textContent = 'Success! Your entry was recorded.';
+          msg.classList.add('ok');
+          f.reset();
+          dateInput.value = max;
+        } else {
+          msg.textContent = 'Error: ' + (j.error || 'Unknown');
+          msg.classList.add('err');
+        }
+      } catch (err) {
+        msg.textContent = 'Network error. Please try again.';
+        msg.classList.add('err');
+      }
+    });
+  </script>
+</body>
+</html>
