@@ -32,7 +32,7 @@
     }
     .card {
       width: 100%;
-      max-width: 720px;
+      max-width: 780px;
       background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)), var(--card);
       border: 1px solid rgba(255,255,255,.08);
       border-radius: 24px;
@@ -44,10 +44,7 @@
       font-size: clamp(20px, 3vw, 32px);
       letter-spacing: 0.3px;
     }
-    p.sub {
-      margin: 0 0 20px;
-      color: var(--muted);
-    }
+    p.sub { margin: 0 0 20px; color: var(--muted); }
     label { font-weight: 600; display:block; margin: 14px 0 6px; }
     input, select {
       width: 100%;
@@ -78,10 +75,40 @@
     .err { color: var(--err); }
     small { color: var(--muted); }
     footer { margin-top: 16px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    /* Countdown styles */
+    .countdown { 
+      display: grid; gap: 10px; margin-bottom: 18px; 
+      padding: 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px;
+      background: linear-gradient(180deg, rgba(166,77,255,.06), rgba(255,77,196,.03));
+    }
+    .countdown .title { font-weight: 800; letter-spacing: .3px; }
+    .when { color: var(--muted); font-size: 14px; }
+    .tickgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .tick { 
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px; 
+      padding: 14px; text-align: center;
+    }
+    .num { font-size: clamp(22px, 5vw, 32px); font-weight: 900; line-height: 1; }
+    .lbl { color: var(--muted); font-size: 12px; margin-top: 4px; display:block; }
   </style>
 </head>
 <body>
   <main class="card">
+    <!-- Countdown block -->
+    <div class="countdown" role="timer" aria-live="polite">
+      <div class="title">Big Drawing Countdown</div>
+      <div class="tickgrid">
+        <div class="tick"><div id="dd" class="num">0</div><span class="lbl">Days</span></div>
+        <div class="tick"><div id="hh" class="num">0</div><span class="lbl">Hours</span></div>
+        <div class="tick"><div id="mm" class="num">0</div><span class="lbl">Minutes</span></div>
+        <div class="tick"><div id="ss" class="num">0</div><span class="lbl">Seconds</span></div>
+      </div>
+      <div class="when">Dec 1, 2025 · 12:00 PM ET</div>
+    </div>
+
     <h1>Bullish Sweeps — Entry Portal</h1>
     <p class="sub">Backfill allowed from <strong>Aug 1, 2025</strong>. Use the same wallet/email every time.</p>
 
@@ -102,7 +129,7 @@
         </div>
         <div>
           <label>Wallet Address</label>
-          <input type="text" name="wallet_address" placeholder="0x..." required pattern="0x[a-fA-F0-9]{40}">
+          <input type="text" name="wallet_address" placeholder="0x..." required pattern="0x[a-fA-F0-9]40">
         </div>
       </div>
 
@@ -161,12 +188,40 @@
     const yearSpan = document.getElementById('year');
     yearSpan.textContent = new Date().getFullYear();
 
+    // Countdown target (Noon ET on 2025-12-01 = 17:00:00Z)
+    const TARGET_UTC = '2025-12-01T17:00:00Z';
+    const dd = document.getElementById('dd');
+    const hh = document.getElementById('hh');
+    const mm = document.getElementById('mm');
+    const ss = document.getElementById('ss');
+
+    function updateCountdown() {
+      const now = new Date();
+      const t = Date.parse(TARGET_UTC) - now.getTime();
+      if (t <= 0) {
+        dd.textContent = '0'; hh.textContent = '0'; mm.textContent = '0'; ss.textContent = '0';
+        return;
+      }
+      const s = Math.floor(t / 1000);
+      const days = Math.floor(s / 86400);
+      const hours = Math.floor((s % 86400) / 3600);
+      const minutes = Math.floor((s % 3600) / 60);
+      const seconds = s % 60;
+      dd.textContent = String(days);
+      hh.textContent = String(hours).padStart(2, '0');
+      mm.textContent = String(minutes).padStart(2, '0');
+      ss.textContent = String(seconds).padStart(2, '0');
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    // Set date min/max
     const min = '2025-08-01';
     const today = new Date();
     const yyyy = today.getFullYear();
-    const mm = String(today.getMonth()+1).padStart(2,'0');
-    const dd = String(today.getDate()).padStart(2,'0');
-    const max = `${yyyy}-${mm}-${dd}`;
+    const mm_ = String(today.getMonth()+1).padStart(2,'0');
+    const dd_ = String(today.getDate()).padStart(2,'0');
+    const max = `${yyyy}-${mm_}-${dd_}`;
     dateInput.min = min;
     dateInput.max = max;
     dateInput.value = max;
