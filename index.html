@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -276,22 +277,21 @@
         box.innerHTML = '<span class="err">Could not fetch totals.</span>';
         return;
       }
-      const t = payload.totals || { entries:{all:0,verified:0,pending:0}, tokens:{all:0,verified:0,pending:0} };
+      const t = payload.totals || { entries:{all:0,verified:0,pending:0} }; // tokens removed from UI
       const fmt = (n) => (typeof n === 'number' ? n.toLocaleString() : n);
       let html = `
         <div><strong>Entries:</strong> ${fmt(t.entries.all)} <small>(Verified: ${fmt(t.entries.verified)}, Pending: ${fmt(t.entries.pending)})</small></div>
-        <div><strong>Tokens:</strong> ${fmt(t.tokens.all)} <small>(Verified: ${fmt(t.tokens.verified)}, Pending: ${fmt(t.tokens.pending)})</small></div>
       `;
       if (payload.breakdown) {
         html += '<div style="margin-top:8px"><strong>By Type</strong></div>';
         for (const [type, b] of Object.entries(payload.breakdown)) {
           html += `
             <div style="margin-left:8px">
-              <div><em>${type}</em> — Entries: ${fmt(b.entries.all)} (V:${fmt(b.entries.verified)}/P:${fmt(b.entries.pending)}), Tokens: ${fmt(b.tokens.all)} (V:${fmt(b.tokens.verified)}/P:${fmt(b.tokens.pending)})</div>
+              <div><em>${type}</em> — Entries: ${fmt(b.entries.all)} (V:${fmt(b.entries.verified)}/P:${fmt(b.entries.pending)})</div>
             </div>`;
         }
       }
-      html += `<div style="margin-top:6px; color:#9aa0b6;"><small>Note: Only <strong>Verified</strong> entries/tokens count for drawings. Pending items are approved after review.</small></div>`;
+      html += `<div style="margin-top:6px; color:#9aa0b6;"><small>Note: Only <strong>Verified entries</strong> count for drawings.</small></div>`;
       box.innerHTML = html;
     }
 
