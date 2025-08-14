@@ -103,7 +103,7 @@
       <div class="tickgrid">
         <div class="tick"><div id="dd" class="num">0</div><span class="lbl">Days</span></div>
         <div class="tick"><div id="hh" class="num">0</div><span class="lbl">Hours</span></div>
-        <div class="tick"><div id="mm" class="num">0</div><span class="lbl">Minutes</span></div>
+        <div class="tick"><div id="mn" class="num">0</div><span class="lbl">Minutes</span></div>
         <div class="tick"><div id="ss" class="num">0</div><span class="lbl">Seconds</span></div>
       </div>
       <div class="when">Dec 1, 2025 · 12:00 PM ET</div>
@@ -188,29 +188,29 @@
     const yearSpan = document.getElementById('year');
     yearSpan.textContent = new Date().getFullYear();
 
-    // Countdown target (Noon ET on 2025-12-01 = 17:00:00Z)
+    // Countdown target: Noon ET on Dec 1, 2025 = 17:00:00Z
     const TARGET_UTC = '2025-12-01T17:00:00Z';
-    const dd = document.getElementById('dd');
-    const hh = document.getElementById('hh');
-    const mm = document.getElementById('mm');
-    const ss = document.getElementById('ss');
+    const ddEl = document.getElementById('dd');
+    const hhEl = document.getElementById('hh');
+    const mnEl = document.getElementById('mn');
+    const ssEl = document.getElementById('ss');
 
     function updateCountdown() {
-      const now = new Date();
-      const t = Date.parse(TARGET_UTC) - now.getTime();
-      if (t <= 0) {
-        dd.textContent = '0'; hh.textContent = '0'; mm.textContent = '0'; ss.textContent = '0';
+      const now = Date.now();
+      const diff = Date.parse(TARGET_UTC) - now;
+      if (diff <= 0) {
+        ddEl.textContent = '0'; hhEl.textContent = '0'; mnEl.textContent = '0'; ssEl.textContent = '0';
         return;
       }
-      const s = Math.floor(t / 1000);
+      const s = Math.floor(diff / 1000);
       const days = Math.floor(s / 86400);
       const hours = Math.floor((s % 86400) / 3600);
-      const minutes = Math.floor((s % 3600) / 60);
-      const seconds = s % 60;
-      dd.textContent = String(days);
-      hh.textContent = String(hours).padStart(2, '0');
-      mm.textContent = String(minutes).padStart(2, '0');
-      ss.textContent = String(seconds).padStart(2, '0');
+      const mins = Math.floor((s % 3600) / 60);
+      const secs = s % 60;
+      ddEl.textContent = String(days);
+      hhEl.textContent = String(hours).padStart(2, '0');
+      mnEl.textContent = String(mins).padStart(2, '0');
+      ssEl.textContent = String(secs).padStart(2, '0');
     }
     updateCountdown();
     setInterval(updateCountdown, 1000);
@@ -219,9 +219,9 @@
     const min = '2025-08-01';
     const today = new Date();
     const yyyy = today.getFullYear();
-    const mm_ = String(today.getMonth()+1).padStart(2,'0');
-    const dd_ = String(today.getDate()).padStart(2,'0');
-    const max = `${yyyy}-${mm_}-${dd_}`;
+    const mmNum = String(today.getMonth()+1).padStart(2,'0');
+    const ddNum = String(today.getDate()).padStart(2,'0');
+    const max = `${yyyy}-${mmNum}-${ddNum}`;
     dateInput.min = min;
     dateInput.max = max;
     dateInput.value = max;
@@ -308,5 +308,3 @@
   </script>
 </body>
 </html>
-
-
