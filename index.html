@@ -342,6 +342,7 @@
       url.searchParams.set('action', 'totals');
       if (wallet) url.searchParams.set('wallet', wallet);
       if (email)  url.searchParams.set('email', email);
+      url.searchParams.set('ts', Date.now().toString()); // cache buster
       const r = await fetch(url.toString());
       const j = await r.json();
       return j;
