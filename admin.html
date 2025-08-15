@@ -42,9 +42,12 @@
     }
     h1 { margin: 0 0 4px; font-size: clamp(20px, 3vw, 32px); }
     .sub { margin: 0 0 16px; color: var(--muted); }
-    .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    label { font-weight: 600; display:block; margin: 8px 0 6px; }
-    input, select, button {
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .msg { margin-top: 8px; font-weight: 700; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    input, button {
       width: 100%;
       background: rgba(255,255,255,.04);
       color: var(--text);
@@ -54,25 +57,14 @@
       outline: none;
       font-size: 14px;
     }
-    button {
-      cursor: pointer; font-weight: 800; letter-spacing: .3px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      border: none;
-    }
+    button { cursor: pointer; font-weight: 800; letter-spacing: .3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); border: none; }
     .mutebtn { background: rgba(255,255,255,.06); }
-    .stack { display: grid; gap: 10px; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .msg { margin-top: 8px; font-weight: 700; }
-    .ok { color: var(--ok); }
-    .err { color: var(--err); }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,.08); vertical-align: top; }
     th { text-align: left; color: var(--muted); font-weight: 600; }
     .pill { display:inline-block; padding:2px 6px; border-radius: 999px; font-size:12px; }
     .pending { background: rgba(255,183,77,.15); border:1px solid rgba(255,183,77,.4); }
     .verified { background: rgba(54,194,117,.15); border:1px solid rgba(54,194,117,.4); }
-    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
-    footer { margin-top: 12px; color: var(--muted); font-size: 12px; text-align: center; }
     .totals { display:flex; gap:12px; flex-wrap:wrap; }
     .totals .cardish { padding:10px 12px; border:1px solid rgba(255,255,255,.12); border-radius:10px; background: rgba(255,255,255,.03); }
     .hide { display:none; }
@@ -82,63 +74,60 @@
 <body>
   <main class="card">
     <h1>Admin — Bullish Sweeps</h1>
-    <p class="sub">Search, verify, and export. <strong>Note:</strong> Use your <em>admin</em> Apps Script URL (separate deployment, allowlisted).</p>
+    <p class="sub">Paste your <strong>admin</strong> Apps Script URL (plain <code>/macros/s/…/exec</code>). If your deployment is set to “Anyone with Google account,” also enter the Admin Key.</p>
 
-    <div class="stack">
-      <div class="grid2">
-        <div>
-          <label>Admin Script URL</label>
-          <input id="adminUrl" placeholder="https://script.google.com/macros/s/ADMIN_DEPLOYMENT_ID/exec">
-          <small class="sub">Must be a deployment set to: <em>Execute as: User accessing the web app</em> and <em>Only specific people</em>.</small>
-        </div>
-        <div>
-          <label>Quick Actions</label>
-          <div class="controls">
-            <button id="loadPendingBtn" class="mutebtn" type="button">Load Pending</button>
-            <button id="exportCsvBtn" class="mutebtn" type="button">Export Verified CSV</button>
-          </div>
-        </div>
+    <div class="grid2">
+      <div>
+        <label>Admin Script URL</label>
+        <input id="adminUrl" placeholder="https://script.google.com/macros/s/ADMIN_DEPLOYMENT_ID/exec">
+        <small class="sub">Tip: Avoid the <code>/a/macros/&lt;domain&gt;/…</code> URL — use plain <code>/macros/s/…</code> from the deployment dialog.</small>
       </div>
-
-      <div class="grid2">
-        <div>
-          <label>Wallet (0x…)</label>
-          <input id="qWallet" placeholder="0x..." autocomplete="off" autocapitalize="off" spellcheck="false">
-        </div>
-        <div>
-          <label>Email</label>
-          <input id="qEmail" placeholder="you@example.com" autocomplete="off">
-        </div>
+      <div>
+        <label>Admin Key (if required)</label>
+        <input id="adminKey" placeholder="Paste the shared admin key">
+        <small class="sub">Use if your admin deployment is “Anyone with Google account”.</small>
       </div>
-      <div class="controls">
-        <button id="searchBtn" type="button">Search</button>
-        <button id="verifySelBtn" class="mutebtn" type="button">Verify Selected</button>
-        <button id="unverifySelBtn" class="mutebtn" type="button">Unverify Selected</button>
-        <button id="refreshBtn" class="mutebtn" type="button">Refresh</button>
+    </div>
+
+    <div class="grid2" style="margin-top:10px;">
+      <div>
+        <label>Wallet (0x…)</label>
+        <input id="qWallet" placeholder="0x..." autocomplete="off" autocapitalize="off" spellcheck="false">
       </div>
-
-      <div id="msg" class="msg"></div>
-
-      <div id="totals" class="totals hide"></div>
-
-      <div style="overflow:auto;">
-        <table id="tbl">
-          <thead>
-            <tr>
-              <th style="width:28px;"><input type="checkbox" id="checkAll"></th>
-              <th>Row</th>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Wallet</th>
-              <th>Email</th>
-              <th>Entries</th>
-              <th>Status</th>
-              <th>Tx / Referred / Evidence</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <div>
+        <label>Email</label>
+        <input id="qEmail" placeholder="you@example.com" autocomplete="off">
       </div>
+    </div>
+    <div class="controls" style="margin-top:10px;">
+      <button id="searchBtn" type="button">Search</button>
+      <button id="loadPendingBtn" class="mutebtn" type="button">Load Pending</button>
+      <button id="verifySelBtn" class="mutebtn" type="button">Verify Selected</button>
+      <button id="unverifySelBtn" class="mutebtn" type="button">Unverify Selected</button>
+      <button id="exportCsvBtn" class="mutebtn" type="button">Export Verified CSV</button>
+      <button id="refreshBtn" class="mutebtn" type="button">Refresh</button>
+    </div>
+
+    <div id="msg" class="msg"></div>
+    <div id="totals" class="totals hide"></div>
+
+    <div style="overflow:auto; margin-top:10px;">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th style="width:28px;"><input type="checkbox" id="checkAll"></th>
+            <th>Row</th>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Wallet</th>
+            <th>Email</th>
+            <th>Entries</th>
+            <th>Status</th>
+            <th>Tx / Referred / Evidence</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
 
     <footer>© <span id="year"></span> Bullish Moon — Admin</footer>
@@ -153,18 +142,20 @@
     const tblBody = document.querySelector('#tbl tbody');
     const totalsBox = el('totals');
 
-    const ADMIN_KEY = 'bullish_admin_url';
-    const saved = localStorage.getItem(ADMIN_KEY);
-    if (saved) el('adminUrl').value = saved;
-    el('adminUrl').addEventListener('change', () => {
-      localStorage.setItem(ADMIN_KEY, el('adminUrl').value.trim());
-    });
+    const ADMIN_URL_KEY = 'bullish_admin_url';
+    const ADMIN_KEY_KEY = 'bullish_admin_key';
+    el('adminUrl').value = localStorage.getItem(ADMIN_URL_KEY) || '';
+    el('adminKey').value = localStorage.getItem(ADMIN_KEY_KEY) || '';
+    el('adminUrl').addEventListener('change', () => localStorage.setItem(ADMIN_URL_KEY, el('adminUrl').value.trim()));
+    el('adminKey').addEventListener('change', () => localStorage.setItem(ADMIN_KEY_KEY, el('adminKey').value.trim()));
 
     function apiUrl(params) {
       const base = el('adminUrl').value.trim();
       if (!base) throw new Error('Set the Admin Script URL first.');
       const u = new URL(base);
       Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== null) u.searchParams.set(k, String(v)); });
+      const key = el('adminKey').value.trim();
+      if (key) u.searchParams.set('key', key);
       u.searchParams.set('ts', Date.now().toString());
       return u.toString();
     }
@@ -220,16 +211,14 @@
 
     async function adminGet(params) {
       const r = await fetch(apiUrl(params));
-      if (r.status === 403) throw new Error('Forbidden: your Google account is not on the allowlist.');
-      const j = await r.json();
+      const j = await r.json().catch(() => { throw new Error('Bad response (not JSON). Check Admin URL & access.'); });
       if (!j.ok) throw new Error(j.error || 'Error');
       return j;
     }
     async function adminPost(params) {
       const url = apiUrl({ ...params, method: 'POST' });
       const r = await fetch(url, { method: 'POST' });
-      if (r.status === 403) throw new Error('Forbidden: your Google account is not on the allowlist.');
-      const j = await r.json();
+      const j = await r.json().catch(() => { throw new Error('Bad response (not JSON). Check Admin URL & access.'); });
       if (!j.ok) throw new Error(j.error || 'Error');
       return j;
     }
