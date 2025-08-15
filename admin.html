@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bullish Sweeps — Admin</title>
+  <meta name="description" content="Admin panel for Bullish Sweeps" />
+  <style>
+    :root {
+      --bg: #0b0b14;
+      --card: #171728;
+      --text: #e8e8ff;
+      --muted: #9aa0b6;
+      --accent: #a64dff;
+      --accent2: #ff4dc4;
+      --ok: #36c275;
+      --err: #ff6b6b;
+      --warn: #ffb74d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(60rem 60rem at 20% 10%, rgba(166,77,255,.12), transparent 60%),
+        radial-gradient(50rem 50rem at 80% 0%, rgba(255,77,196,.08), transparent 60%),
+        var(--bg);
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 1000px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)), var(--card);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      padding: 20px;
+    }
+    h1 { margin: 0 0 4px; font-size: clamp(20px, 3vw, 32px); }
+    .sub { margin: 0 0 16px; color: var(--muted); }
+    .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    label { font-weight: 600; display:block; margin: 8px 0 6px; }
+    input, select, button {
+      width: 100%;
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline: none;
+      font-size: 14px;
+    }
+    button {
+      cursor: pointer; font-weight: 800; letter-spacing: .3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border: none;
+    }
+    .mutebtn { background: rgba(255,255,255,.06); }
+    .stack { display: grid; gap: 10px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .msg { margin-top: 8px; font-weight: 700; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,.08); vertical-align: top; }
+    th { text-align: left; color: var(--muted); font-weight: 600; }
+    .pill { display:inline-block; padding:2px 6px; border-radius: 999px; font-size:12px; }
+    .pending { background: rgba(255,183,77,.15); border:1px solid rgba(255,183,77,.4); }
+    .verified { background: rgba(54,194,117,.15); border:1px solid rgba(54,194,117,.4); }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    footer { margin-top: 12px; color: var(--muted); font-size: 12px; text-align: center; }
+    .totals { display:flex; gap:12px; flex-wrap:wrap; }
+    .totals .cardish { padding:10px 12px; border:1px solid rgba(255,255,255,.12); border-radius:10px; background: rgba(255,255,255,.03); }
+    .hide { display:none; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Admin — Bullish Sweeps</h1>
+    <p class="sub">Search, verify, and export. <strong>Note:</strong> Use your <em>admin</em> Apps Script URL (separate deployment, allowlisted).</p>
+
+    <div class="stack">
+      <div class="grid2">
+        <div>
+          <label>Admin Script URL</label>
+          <input id="adminUrl" placeholder="https://script.google.com/macros/s/ADMIN_DEPLOYMENT_ID/exec">
+          <small class="sub">Must be a deployment set to: <em>Execute as: User accessing the web app</em> and <em>Only specific people</em>.</small>
+        </div>
+        <div>
+          <label>Quick Actions</label>
+          <div class="controls">
+            <button id="loadPendingBtn" class="mutebtn" type="button">Load Pending</button>
+            <button id="exportCsvBtn" class="mutebtn" type="button">Export Verified CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>Wallet (0x…)</label>
+          <input id="qWallet" placeholder="0x..." autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div>
+          <label>Email</label>
+          <input id="qEmail" placeholder="you@example.com" autocomplete="off">
+        </div>
+      </div>
+      <div class="controls">
+        <button id="searchBtn" type="button">Search</button>
+        <button id="verifySelBtn" class="mutebtn" type="button">Verify Selected</button>
+        <button id="unverifySelBtn" class="mutebtn" type="button">Unverify Selected</button>
+        <button id="refreshBtn" class="mutebtn" type="button">Refresh</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+
+      <div id="totals" class="totals hide"></div>
+
+      <div style="overflow:auto;">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th style="width:28px;"><input type="checkbox" id="checkAll"></th>
+              <th>Row</th>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Wallet</th>
+              <th>Email</th>
+              <th>Entries</th>
+              <th>Status</th>
+              <th>Tx / Referred / Evidence</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>© <span id="year"></span> Bullish Moon — Admin</footer>
+  </main>
+
+  <script>
+    const yearSpan = document.getElementById('year');
+    yearSpan.textContent = new Date().getFullYear();
+
+    const el = (id) => document.getElementById(id);
+    const msg = el('msg');
+    const tblBody = document.querySelector('#tbl tbody');
+    const totalsBox = el('totals');
+
+    const ADMIN_KEY = 'bullish_admin_url';
+    const saved = localStorage.getItem(ADMIN_KEY);
+    if (saved) el('adminUrl').value = saved;
+    el('adminUrl').addEventListener('change', () => {
+      localStorage.setItem(ADMIN_KEY, el('adminUrl').value.trim());
+    });
+
+    function apiUrl(params) {
+      const base = el('adminUrl').value.trim();
+      if (!base) throw new Error('Set the Admin Script URL first.');
+      const u = new URL(base);
+      Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== null) u.searchParams.set(k, String(v)); });
+      u.searchParams.set('ts', Date.now().toString());
+      return u.toString();
+    }
+
+    function setMsg(text, ok=false) {
+      msg.textContent = text || '';
+      msg.className = 'msg ' + (ok ? 'ok' : (text ? 'err' : ''));
+    }
+
+    function fmt(n) { return (typeof n === 'number') ? n.toLocaleString() : n; }
+    function h(s) { return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    function renderTotals(payload) {
+      if (!payload || !payload.ok) { totalsBox.classList.add('hide'); return; }
+      const t = payload.totals || { entries:{all:0,verified:0,pending:0} };
+      const parts = [
+        `<div class="cardish"><strong>Entries — All:</strong> ${fmt(t.entries.all)}</div>`,
+        `<div class="cardish"><strong>Verified:</strong> ${fmt(t.entries.verified)}</div>`,
+        `<div class="cardish"><strong>Pending:</strong> ${fmt(t.entries.pending)}</div>`,
+      ];
+      totalsBox.innerHTML = parts.join('');
+      totalsBox.classList.remove('hide');
+    }
+
+    function renderRows(list) {
+      tblBody.innerHTML = '';
+      for (const r of (list || [])) {
+        const status = r.is_verified ? '<span class="pill verified">Verified</span>' : '<span class="pill pending">Pending</span>';
+        const extras = [r.tx_hash, r.referred_wallet, r.evidence].filter(Boolean).map(h).join('<br>');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" data-row="${r.row}"></td>
+          <td>${fmt(r.row)}</td>
+          <td>${h(r.entry_date || '')}</td>
+          <td>${h(r.entry_type || '')}</td>
+          <td><code>${h(r.wallet_address || '')}</code></td>
+          <td>${h(r.email || '')}</td>
+          <td>${fmt(r.entries_awarded || 0)}</td>
+          <td>${status}</td>
+          <td style="max-width:280px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${extras || ''}</td>
+        `;
+        tblBody.appendChild(tr);
+      }
+    }
+
+    function selectedRows() {
+      return Array.from(document.querySelectorAll('tbody input[type="checkbox"]:checked')).map(c => Number(c.dataset.row));
+    }
+    document.getElementById('checkAll').addEventListener('change', (e) => {
+      const on = e.target.checked;
+      document.querySelectorAll('tbody input[type="checkbox"]').forEach(c => c.checked = on);
+    });
+
+    async function adminGet(params) {
+      const r = await fetch(apiUrl(params));
+      if (r.status === 403) throw new Error('Forbidden: your Google account is not on the allowlist.');
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'Error');
+      return j;
+    }
+    async function adminPost(params) {
+      const url = apiUrl({ ...params, method: 'POST' });
+      const r = await fetch(url, { method: 'POST' });
+      if (r.status === 403) throw new Error('Forbidden: your Google account is not on the allowlist.');
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'Error');
+      return j;
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', async () => {
+      try {
+        setMsg('Searching…');
+        const wallet = el('qWallet').value.trim().toLowerCase();
+        const email  = el('qEmail').value.trim();
+        const res = await adminGet({ action: 'admin_search', wallet, email });
+        renderTotals(res);
+        renderRows(res.rows);
+        setMsg('Loaded search results', true);
+      } catch (e) { setMsg(e.message || 'Search failed'); }
+    });
+
+    document.getElementById('loadPendingBtn').addEventListener('click', async () => {
+      try {
+        setMsg('Loading pending…');
+        const res = await adminGet({ action: 'admin_pending', limit: 200 });
+        renderTotals(res);
+        renderRows(res.rows);
+        setMsg('Loaded latest pending', true);
+      } catch (e) { setMsg(e.message || 'Failed to load pending'); }
+    });
+
+    document.getElementById('verifySelBtn').addEventListener('click', async () => {
+      try {
+        const rows = selectedRows();
+        if (!rows.length) { setMsg('Select at least one row'); return; }
+        setMsg('Verifying…');
+        const res = await adminPost({ action: 'admin_verify', rows: rows.join(',') });
+        setMsg(`Verified ${res.updated} row(s)`, true);
+        document.getElementById('refreshBtn').click();
+      } catch (e) { setMsg(e.message || 'Verify failed'); }
+    });
+
+    document.getElementById('unverifySelBtn').addEventListener('click', async () => {
+      try {
+        const rows = selectedRows();
+        if (!rows.length) { setMsg('Select at least one row'); return; }
+        setMsg('Unverifying…');
+        const res = await adminPost({ action: 'admin_unverify', rows: rows.join(',') });
+        setMsg(`Unverified ${res.updated} row(s)`, true);
+        document.getElementById('refreshBtn').click();
+      } catch (e) { setMsg(e.message || 'Unverify failed'); }
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+      const wallet = el('qWallet').value.trim().toLowerCase();
+      const email  = el('qEmail').value.trim();
+      if (wallet || email) document.getElementById('searchBtn').click();
+      else document.getElementById('loadPendingBtn').click();
+    });
+
+    document.getElementById('exportCsvBtn').addEventListener('click', () => {
+      try {
+        const url = apiUrl({ action: 'admin_export_csv' });
+        window.open(url, '_blank');
+      } catch (e) { setMsg(e.message || 'Set Admin URL first'); }
+    });
+  </script>
+</body>
+</html>
